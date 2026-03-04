@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>CortexHire | Unified Admin Dashboard</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+
+        .tab-content { display: none; }
+
+        .tab-content.active { display: block; }
+
+        .tab-btn.active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+
+    </style>
+
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+
+
+
+    <nav class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+
+        <div class="flex items-center gap-8">
+
+            <h1 class="text-xl font-bold text-gray-800 tracking-tight">Cortex<span class="text-blue-600">Hire</span></h1>
+
+            <div class="flex gap-6">
+
+                <button onclick="switchTab('admin')" id="tab-admin" class="tab-btn font-semibold text-gray-500 pb-1 transition-all active">1. Job Manager</button>
+
+                <button onclick="switchTab('hr')" id="tab-hr" class="tab-btn font-semibold text-gray-500 pb-1 transition-all">2. Offer Sender</button>
+
+            </div>
+
+        </div>
+
+        <button onclick="toggleSettings()" class="p-2 hover:bg-gray-100 rounded-full transition-all">
+
+            ⚙️ <span class="text-xs font-bold uppercase ml-1">Settings</span>
+
+        </button>
+
+    </nav>
+
+
+
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+
+        <div class="bg-white rounded-[32px] p-8 max-w-md w-full shadow-2xl">
+
+            <h2 class="text-2xl font-bold mb-6">API Configuration</h2>
+
+            <div class="space-y-4">
+
+                <div>
+
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Supabase URL</label>
+
+                    <input type="text" id="set-url" class="w-full p-3 bg-gray-50 rounded-xl border outline-none focus:border-blue-400">
+
+                </div>
+
+                <div>
+
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Supabase Key</label>
+
+                    <input type="password" id="set-key" class="w-full p-3 bg-gray-50 rounded-xl border outline-none focus:border-blue-400">
+
+                </div>
+
+                <div>
+
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1">n8n Webhook URL</label>
+
+                    <input type="text" id="set-webhook" class="w-full p-3 bg-gray-50 rounded-xl border outline-none focus:border-blue-400">
+
+                </div>
+
+            </div>
+
+            <div class="flex gap-3 mt-8">
+
+                <button onclick="saveSettings()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">Save Config</button>
+
+                <button onclick="toggleSettings()" class="px-6 py-3 border rounded-xl font-bold">Close</button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <main class="max-w-4xl mx-auto p-6 mt-4">
+
+        
+
+        <div id="content-admin" class="tab-content active animate-in fade-in duration-500">
+
+            <div class="flex justify-between items-center mb-8">
+
+                <div>
+
+                    <h2 class="text-3xl font-bold text-gray-800">Job Drafts</h2>
+
+                    <p class="text-gray-500 text-sm">Review, Edit, or Remove questions before publishing</p>
+
+                </div>
+
+                <button onclick="loadDrafts()" class="bg-white px-6 py-2 rounded-xl border-2 border-blue-100 font-bold text-blue-600 hover:bg-blue-50">Refresh List</button>
+
+            </div>
+
+            <div id="drafts-container" class="space-y-6">
+
+                <div class="text-center py-20 text-gray-400 italic font-medium">Please configure Supabase in Settings first.</div>
+
+            </div>
+
+        </div>
+
+
+
+        <div id="content-hr" class="tab-content animate-in fade-in duration-500">
+
+            <div class="mb-8 text-center">
+
+                <h2 class="text-3xl font-bold text-gray-800">Offer Dispatcher</h2>
+
+                <p class="text-gray-500 text-sm">Review candidate parameters and trigger n8n workflow</p>
+
+            </div>
+
+
+
+            <div class="bg-white p-8 rounded-[32px] border-2 border-gray-100 shadow-sm">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Candidate Name</label>
+
+                        <input type="text" id="hr-name" value="Muhammad Waqas" class="w-full p-4 bg-gray-50 rounded-2xl border outline-none" readonly>
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Email Address</label>
+
+                        <input type="text" id="hr-email" value="mwaqas-ai@innovativesoftwaresolution.com" class="w-full p-4 bg-gray-50 rounded-2xl border outline-none" readonly>
+
+                    </div>
+
+                    <div class="md:col-span-2 border-t pt-6 mt-2">
+
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Job Title</label>
+
+                        <input type="text" id="hr-job" value="In-Person Interview (Video Editor)" class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 outline-none focus:border-blue-400 font-semibold">
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Monthly Salary (PKR)</label>
+
+                        <input type="number" id="hr-salary" value="40000" class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 outline-none focus:border-blue-400 font-semibold">
+
+                    </div>
+
+                    <div>
+
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Joining Date</label>
+
+                        <input type="date" id="hr-date" class="w-full p-4 bg-white rounded-2xl border-2 border-blue-100 outline-none focus:border-blue-400 font-semibold">
+
+                    </div>
+
+                </div>
+
+                <button onclick="sendOffer()" id="hr-send-btn" class="w-full bg-blue-600 text-white py-5 rounded-3xl font-bold text-lg hover:bg-blue-700 transition-all active:scale-[0.98]">
+
+                    🚀 Generate & Send Offer Letter
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+
+    <script>
+
+        let supabaseClient = null;
+
+
+
+        function switchTab(tab) {
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`content-${tab}`).classList.add('active');
+
+            document.getElementById(`tab-${tab}`).classList.add('active');
+
+            if(tab === 'admin') loadDrafts();
+
+        }
+
+
+
+        function toggleSettings() {
+
+            const modal = document.getElementById('settings-modal');
+
+            modal.classList.toggle('hidden');
+
+            document.getElementById('set-url').value = localStorage.getItem('sb_url') || '';
+
+            document.getElementById('set-key').value = localStorage.getItem('sb_key') || '';
+
+            document.getElementById('set-webhook').value = localStorage.getItem('n8n_url') || '';
+
+        }
+
+
+
+        function saveSettings() {
+
+            localStorage.setItem('sb_url', document.getElementById('set-url').value);
+
+            localStorage.setItem('sb_key', document.getElementById('set-key').value);
+
+            localStorage.setItem('n8n_url', document.getElementById('set-webhook').value);
+
+            initSupabase(); toggleSettings(); alert("Settings Saved!"); loadDrafts();
+
+        }
+
+
+
+        function initSupabase() {
+
+            const url = localStorage.getItem('sb_url'), key = localStorage.getItem('sb_key');
+
+            if(url && key) supabaseClient = supabase.createClient(url, key);
+
+        }
+
+
+
+        // --- ADMIN: LOAD DRAFTS WITH REMOVE FEATURE ---
+
+        async function loadDrafts() {
+
+            if(!supabaseClient) { initSupabase(); if(!supabaseClient) return; }
+
+            const container = document.getElementById('drafts-container');
+
+            container.innerHTML = '<div class="text-center py-20 text-gray-400 animate-pulse font-medium">Scanning for new drafts...</div>';
+
+
+
+            const { data, error } = await supabaseClient.from('jobs').select('*').eq('status', 'draft').order('created_at', { ascending: false });
+
+
+
+            if (error) { container.innerHTML = `<div class="bg-red-50 text-red-600 p-4 rounded-xl">Error: ${error.message}</div>`; return; }
+
+            if (!data || data.length === 0) { container.innerHTML = `<div class="text-center py-20 bg-white rounded-[32px] border-2 border-dashed text-gray-400">No pending drafts found.</div>`; return; }
+
+
+
+            container.innerHTML = '';
+
+            data.forEach(job => {
+
+                const card = document.createElement('div');
+
+                card.className = "bg-white p-8 rounded-[32px] border-2 border-gray-100 shadow-sm transition-all hover:shadow-md";
+
+                
+
+                let qs = typeof job.questions === 'string' ? JSON.parse(job.questions) : job.questions;
+
+                
+
+                const questionsHTML = (qs || []).map((q, idx) => {
+
+                    const qText = (typeof q === 'object' && q !== null) ? (q.question_text || q.text || "") : q;
+
+                    return `
+
+                    <div class="flex items-center gap-3 mb-3 group">
+
+                        <span class="text-gray-400 font-bold w-6">${idx + 1}.</span>
+
+                        <input type="text" value="${qText}" class="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 outline-none focus:border-blue-400 q-input-${job.id}">
+
+                        <button onclick="this.parentElement.remove()" class="text-gray-300 hover:text-red-500 p-2 text-xl transition-colors">✕</button>
+
+                    </div>`;
+
+                }).join('');
+
+
+
+                card.innerHTML = `
+
+                    <div class="mb-6">
+
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-200">Draft</span>
+
+                        <h3 class="text-2xl font-bold mt-2">${job.job_role}</h3>
+
+                    </div>
+
+                    <div class="mb-6">
+
+                        <p class="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider">Candidate Questions:</p>
+
+                        <div id="q-list-${job.id}">${questionsHTML}</div>
+
+                    </div>
+
+                    <button onclick="publishJob('${job.id}')" id="btn-${job.id}" class="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition-all active:scale-[0.99]">
+
+                        Confirm & Publish Job
+
+                    </button>
+
+                    <div id="url-box-${job.id}" class="hidden mt-6 p-5 bg-green-50 rounded-2xl border border-green-100">
+
+                         <p class="text-[10px] text-green-600 font-bold uppercase mb-2">Public Link:</p>
+
+                         <input type="text" readonly id="link-${job.id}" class="w-full bg-white/50 p-2 rounded-lg text-green-800 font-mono text-xs outline-none border border-green-200">
+
+                    </div>`;
+
+                container.appendChild(card);
+
+            });
+
+        }
+
+
+
+        async function publishJob(jobId) {
+
+            const btn = document.getElementById(`btn-${jobId}`);
+
+            const inputs = document.querySelectorAll(`.q-input-${jobId}`);
+
+            const finalQs = Array.from(inputs).map(i => i.value.trim()).filter(v => v !== "");
+
+            
+
+            btn.innerText = "Publishing to Database..."; btn.disabled = true;
+
+            const { error } = await supabaseClient.from('jobs').update({ questions: finalQs, status: 'published' }).eq('id', jobId);
+
+
+
+            if (error) { alert(error.message); btn.disabled = false; btn.innerText = "Try Again"; return; }
+
+            
+
+            btn.innerText = "Job Live ✅";
+
+            btn.className = "w-full bg-green-500 text-white py-4 rounded-2xl font-bold cursor-default";
+
+            const publicUrl = `${window.location.origin}/index.html?id=${jobId}`;
+
+            document.getElementById(`link-${jobId}`).value = publicUrl;
+
+            document.getElementById(`url-box-${jobId}`).classList.remove('hidden');
+
+        }
+
+
+
+        async function sendOffer() {
+
+            const webhookUrl = localStorage.getItem('n8n_url');
+
+            if(!webhookUrl) { alert("Please set n8n Webhook URL in Settings!"); toggleSettings(); return; }
+
+            const data = {
+
+                candidate_name: document.getElementById('hr-name').value,
+
+                email: document.getElementById('hr-email').value,
+
+                salary: document.getElementById('hr-salary').value,
+
+                start_date: document.getElementById('hr-date').value,
+
+                job_title: document.getElementById('hr-job').value
+
+            };
+
+            if(!data.start_date) { alert("Please select a Joining Date!"); return; }
+
+            const btn = document.getElementById('hr-send-btn');
+
+            btn.innerText = "Sending..."; btn.disabled = true;
+
+            try {
+
+                await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+
+                alert("Offer Letter Sent!"); btn.innerText = "🚀 Generate & Send Offer Letter"; btn.disabled = false;
+
+            } catch (e) { alert("Error: " + e.message); btn.disabled = false; }
+
+        }
+
+
+
+        window.onload = () => { initSupabase(); loadDrafts(); };
+
+    </script>
+
+</body>
+
+</html>
